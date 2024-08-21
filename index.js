@@ -10,6 +10,7 @@ const app = express();
 // and then attaches it to the body property of the request object
 app.use(express.json());
 app.use(cors());
+app.use(express.static("dist")); // To make Express show static conten
 
 // DATA
 let persons = [

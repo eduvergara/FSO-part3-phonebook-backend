@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:ui": "rm -rf dist && cd /Users/eduvergara/Developer/Learning/FullStackOpen/part2/phonebook && npm run build && cp -r dist /Users/eduvergara/Developer/Learning/FullStackOpen/part3/FSO-part3-phonebook-backend",
+    "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push origin main"
   },
   "repository": {
     "type": "git",

@@ -1,6 +1,7 @@
 // library loading
 const express = require("express");
 const morgan = require("morgan");
+const cors = require("cors");
 
 // initializes an Express application
 const app = express();
@@ -8,6 +9,7 @@ const app = express();
 // middleware function - takes the JSON data of a request, transforms it into a JavaScript object
 // and then attaches it to the body property of the request object
 app.use(express.json());
+app.use(cors());
 
 // DATA
 let persons = [
@@ -168,7 +170,7 @@ const unknownEndpoint = (request, response) => {
 app.use(unknownEndpoint);
 
 // listen to HTTP requests sent to port 3001:
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

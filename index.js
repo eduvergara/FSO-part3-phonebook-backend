@@ -1,7 +1,9 @@
 // library loading
+require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
+const Person = require("./models/person");
 
 // initializes an Express application
 const app = express();
@@ -11,30 +13,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static("dist")); // To make Express show static conten
-
-// DATA
-let persons = [
-  {
-    id: "1",
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: "2",
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: "3",
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: "4",
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
 
 // middleware will be used for catching POST request body
 morgan.token("bodyReq", function getBody(req) {
@@ -77,58 +55,52 @@ const generateId = () => {
 
 // fetching all the resources
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Person.find({}).then((persons) => {
+    response.json(persons);
+  });
 });
 
 // fetching a single resource
 app.get("/api/persons/:id", (request, response) => {
   const id = request.params.id;
-  const person = persons.find((person) => person.id === id);
-
-  if (person) {
-    response.json(person);
-  } else {
-    response.statusMessage = "Current value does not match";
-    response.status(400).end(0);
-  }
+  Person.findById(id).then((person) => {
+    if (person) {
+      response.json(person);
+    } else {
+      response.statusMessage = "Current value does not match";
+      response.status(400).end(0);
+    }
+  });
 });
 
 // route  - deleting resource by ID
 app.delete("/api/persons/:id", (request, response) => {
   const id = request.params.id;
-  console.log(id);
-  persons = persons.find((person) => person.id !== id);
-  response.status(204).end();
+
+  Person.findByIdAndDelete(id).then((result) => {
+    response.status(204).end();
+  });
 });
 
-// route  - receiving data
+// route  - add data
 app.post("/api/persons", (request, response) => {
   const body = request.body;
   const phoneNumber = body.number;
   const name = body.name;
 
-  // error handling for creating new entries
-  const numberOnPhonebook = persons.find(
-    (person) => person.number === phoneNumber
-  )
-    ? true
-    : false;
+  console.log(phoneNumber);
+  console.log(name);
 
-  const nameOnPhonebook = persons.find((person) => person.name === name)
-    ? true
-    : false;
-
-  if (!body.name || !body.number) {
+  // handling missing UI data
+  if (phoneNumber === undefined || name === undefined) {
     return response.status(400).json({
       error: "content missing",
     });
   }
 
-  if (numberOnPhonebook === true) {
-    return response.status(400).json({
-      error: "duplicate phone number",
-    });
-  }
+  // error handling repeated name
+  const nameOnPhonebook =
+    Person.findOne({ name: `${name}` }) !== null ? true : false;
 
   if (nameOnPhonebook === true) {
     return response.status(400).json({
@@ -136,15 +108,25 @@ app.post("/api/persons", (request, response) => {
     });
   }
 
-  // resource is added correctly
-  const person = {
-    name: body.name,
-    number: body.number,
-    id: generateId(),
-  };
+  // error handling repeated phone number
+  const numberOnPhonebook =
+    Person.findOne({ number: `${phoneNumber}` }) !== null ? true : false;
 
-  persons = persons.concat(person);
-  response.json(person);
+  if (numberOnPhonebook === true) {
+    return response.status(400).json({
+      error: "duplicate phone number",
+    });
+  }
+
+  // UI data is correct
+  const person = new Person({
+    name: name,
+    number: phoneNumber,
+  });
+
+  person.save().then((savedPerson) => {
+    response.json(person);
+  });
 });
 
 // route

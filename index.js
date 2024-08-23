@@ -61,26 +61,30 @@ app.get("/api/persons", (request, response) => {
 });
 
 // fetching a single resource
-app.get("/api/persons/:id", (request, response) => {
+app.get("/api/persons/:id", (request, response, next) => {
   const id = request.params.id;
-  Person.findById(id).then((person) => {
-    if (person) {
-      response.json(person);
-    } else {
-      response.statusMessage = "Current value does not match";
-      response.status(400).end(0);
-    }
-  });
+  Person.findById(id)
+    .then((person) => {
+      if (person) {
+        response.json(person);
+      } else {
+        //response.statusMessage = "Current value does not match";
+        response.status(400).end(0);
+      }
+    })
+    .catch((error) => next(error));
 });
 
 // route  - deleting resource by ID
-app.delete("/api/persons/:id", (request, response) => {
+app.delete("/api/persons/:id", (request, response, next) => {
   console.log("id", request.params.id);
   const id = request.params.id;
 
-  Person.findByIdAndDelete(id).then((result) => {
-    response.status(204).end();
-  });
+  Person.findByIdAndDelete(id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => next(error));
 });
 
 // route  - add document to the DB
@@ -133,7 +137,23 @@ app.post("/api/persons", (request, response) => {
     });
 });
 
-// route
+// route  - update a document on the DB
+app.put("/api/persons/:id", (request, response, next) => {
+  const body = request.body;
+
+  const person = {
+    name: body.name,
+    number: body.number,
+  };
+
+  Person.findById(request.params.id, person, { new: true })
+    .then((updatePerson) => {
+      response.json(updatePerson);
+    })
+    .catch((error) => next(error));
+});
+
+// route - is it neccesary to put keep this one here?
 app.get("/info", (request, response) => {
   const personsLength = persons.length;
   const dateRequest = new Date();
@@ -144,7 +164,7 @@ app.get("/info", (request, response) => {
   );
 });
 
-// route
+// route -- is it neccesary to put keep this one here?
 app.get("/", function (req, res) {
   res.send("hello, world!");
 });
@@ -155,6 +175,17 @@ const unknownEndpoint = (request, response) => {
 };
 
 app.use(unknownEndpoint);
+
+// error handler middleware (has to be the last loaded)
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+  console.log("error name: ", error);
+
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  }
+};
+app.use(errorHandler);
 
 // listen to HTTP requests sent to port 3001:
 const PORT = process.env.PORT || 3001;

@@ -146,7 +146,7 @@ app.put("/api/persons/:id", (request, response, next) => {
     number: body.number,
   };
 
-  Person.findById(request.params.id, person, { new: true })
+  Person.findByIdAndDelete(request.params.id, person, { new: true })
     .then((updatePerson) => {
       response.json(updatePerson);
     })

@@ -37,9 +37,9 @@ app.use(
 
 // middleware that prints information about every request that is sent to the server.
 const requestLogger = (request, response, next) => {
-  console.log("Method:", request.method);
-  console.log("Path:  ", request.path);
-  console.log("Body:  ", request.body);
+  console.log("Method :", request.method);
+  console.log("Path   :", request.path);
+  console.log("Body   :", request.body);
   console.log("---");
   next(); // it must call next() to pass control to the next middleware function
 };
@@ -75,6 +75,7 @@ app.get("/api/persons/:id", (request, response) => {
 
 // route  - deleting resource by ID
 app.delete("/api/persons/:id", (request, response) => {
+  console.log("id", request.params.id);
   const id = request.params.id;
 
   Person.findByIdAndDelete(id).then((result) => {
@@ -82,51 +83,54 @@ app.delete("/api/persons/:id", (request, response) => {
   });
 });
 
-// route  - add data
+// route  - add document to the DB
 app.post("/api/persons", (request, response) => {
   const body = request.body;
   const phoneNumber = body.number;
-  const name = body.name;
-
-  console.log(phoneNumber);
-  console.log(name);
+  const nameUI = body.name;
 
   // handling missing UI data
-  if (phoneNumber === undefined || name === undefined) {
+  if (!phoneNumber || !nameUI) {
     return response.status(400).json({
       error: "content missing",
     });
   }
 
-  // error handling repeated name
-  const nameOnPhonebook =
-    Person.findOne({ name: `${name}` }) !== null ? true : false;
+  // First check for duplicate name
+  Person.findOne({ name: nameUI })
+    .then((nameOnPhonebook) => {
+      if (nameOnPhonebook !== null) {
+        return response.status(400).json({
+          error: "name must be unique",
+        });
+      }
 
-  if (nameOnPhonebook === true) {
-    return response.status(400).json({
-      error: "name must be unique",
+      // If no duplicate name, check for duplicate phone number
+      return Person.findOne({ number: phoneNumber });
+    })
+    .then((numberOnPhonebook) => {
+      if (numberOnPhonebook !== null) {
+        return response.status(400).json({
+          error: "duplicate phone number",
+        });
+      }
+
+      // If both checks pass, save the new person
+      const person = new Person({
+        name: nameUI,
+        number: phoneNumber,
+      });
+
+      return person.save().then((savedPerson) => {
+        response.json(savedPerson);
+      });
+    })
+    .catch((err) => {
+      console.log("Error:", err);
+      response.status(500).json({
+        error: "server error",
+      });
     });
-  }
-
-  // error handling repeated phone number
-  const numberOnPhonebook =
-    Person.findOne({ number: `${phoneNumber}` }) !== null ? true : false;
-
-  if (numberOnPhonebook === true) {
-    return response.status(400).json({
-      error: "duplicate phone number",
-    });
-  }
-
-  // UI data is correct
-  const person = new Person({
-    name: name,
-    number: phoneNumber,
-  });
-
-  person.save().then((savedPerson) => {
-    response.json(person);
-  });
 });
 
 // route

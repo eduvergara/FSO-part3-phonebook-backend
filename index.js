@@ -88,7 +88,7 @@ app.delete("/api/persons/:id", (request, response, next) => {
 });
 
 // route  - add document to the DB
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response, next) => {
   const body = request.body;
   const phoneNumber = body.number;
   const nameUI = body.name;
@@ -129,12 +129,7 @@ app.post("/api/persons", (request, response) => {
         response.json(savedPerson);
       });
     })
-    .catch((err) => {
-      console.log("Error:", err);
-      response.status(500).json({
-        error: "server error",
-      });
-    });
+    .catch((error) => next(error));
 });
 
 // route  - update a document on the DB
@@ -183,6 +178,8 @@ const errorHandler = (error, request, response, next) => {
 
   if (error.name === "CastError") {
     return response.status(400).send({ error: "malformatted id" });
+  } else if (error.name === "ValidationError") {
+    return response.status(400).send({ error: "format validation error" });
   }
 };
 app.use(errorHandler);

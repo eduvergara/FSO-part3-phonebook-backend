@@ -1,11 +1,11 @@
 // import
-const mongoose = require("mongoose");
+const mongoose = require('mongoose')
 
 // Retrieving env variables and establish db connection
-const url = process.env.MONGODB_URI;
+const url = process.env.MONGODB_URI
 
-mongoose.set("strictQuery", false);
-mongoose.connect(url);
+mongoose.set('strictQuery', false)
+mongoose.connect(url)
 
 // defines documents structure
 const personSchema = new mongoose.Schema({
@@ -18,24 +18,22 @@ const personSchema = new mongoose.Schema({
     type: String,
     validate: {
       validator: function (v) {
-        return /\d{3}-\d{5,}/.test(v);
+        return /\d{3}-\d{5,}/.test(v)
       },
       message: (props) => `${props.value} is not a valid phone number!`,
     },
     required: true,
   },
-});
+})
 
-// model definition (interface for interacting with the database)
-const Person = mongoose.model("Person", personSchema);
 
 // configure how Mongoose documents from personSchema are serialized to JSON
-personSchema.set("toJSON", {
+personSchema.set('toJSON', {
   transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString();
-    delete returnedObject._id;
-    delete returnedObject.__v;
+    returnedObject.id = returnedObject._id.toString()
+    delete returnedObject._id
+    delete returnedObject.__v
   },
-});
+})
 
-module.exports = mongoose.model("Person", personSchema);
+module.exports = mongoose.model('Person', personSchema)

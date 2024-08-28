@@ -12,9 +12,9 @@ const app = express()
 // and then attaches it to the body property of the request object
 app.use(express.json())
 app.use(cors())
-app.use(express.static('dist')) // To make Express show static conten
+app.use(express.static('dist')) // To make Express show static content
 
-// middleware will be used for catching POST request body
+// middleware that will be used for catching request body
 morgan.token('bodyReq', function getBody(req) {
   return req.body
 })
@@ -46,10 +46,12 @@ const requestLogger = (request, response, next) => {
 app.use(requestLogger)
 
 // fetching all the resources
-app.get('/api/persons', (request, response) => {
-  Person.find({}).then((persons) => {
+app.get('/api/persons', (request, response, next) => {
+  Person.find({})
+  .then((persons) => {
     response.json(persons)
   })
+  .catch((error) => next(error))
 })
 
 // fetching a single resource
@@ -60,7 +62,6 @@ app.get('/api/persons/:id', (request, response, next) => {
       if (person) {
         response.json(person)
       } else {
-        //response.statusMessage = "Current value does not match";
         response.status(400).end(0)
       }
     })
@@ -69,11 +70,16 @@ app.get('/api/persons/:id', (request, response, next) => {
 
 // route  - deleting resource by ID
 app.delete('/api/persons/:id', (request, response, next) => {
-  console.log('id', request.params.id)
+
   const id = request.params.id
 
   Person.findByIdAndDelete(id)
-    .then(() => {
+    .then((person) => {
+      if(person === null){
+        const error = new Error('person already deleted');
+        error.name = 'PersonAlreadyDeleted'; // Custom error name
+        throw error;
+      }
       response.status(204).end()
     })
     .catch((error) => next(error))
@@ -105,10 +111,11 @@ app.post('/api/persons', (request, response, next) => {
       return Person.findOne({ number: phoneNumber })
     })
     .then((numberOnPhonebook) => {
+
       if (numberOnPhonebook !== null) {
-        return response.status(400).json({
-          error: 'duplicate phone number',
-        })
+        const error = new Error('duplicate phone number');
+        error.name = 'DuplicatePhoneNumberError'; // Custom error name
+        throw error;
       }
 
       // If both checks pass, save the new person
@@ -117,7 +124,8 @@ app.post('/api/persons', (request, response, next) => {
         number: phoneNumber,
       })
 
-      return person.save().then((savedPerson) => {
+      return person.save()
+      .then((savedPerson) => {
         response.json(savedPerson)
       })
     })
@@ -133,8 +141,13 @@ app.put('/api/persons/:id', (request, response, next) => {
     number: body.number,
   }
 
-  Person.findByIdAndUpdate(request.params.id, person, { new: true })
+  Person.findByIdAndUpdate(request.params.id, person, { new: true, runValidators: true })
     .then((updatePerson) => {
+      if (updatePerson === null) {
+        const error = new Error('person not found in the database');
+        error.name = 'PersonNotFound'; // Custom error name
+        throw error;
+      }
       response.json(updatePerson)
     })
     .catch((error) => next(error))
@@ -144,19 +157,34 @@ app.put('/api/persons/:id', (request, response, next) => {
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
-
 app.use(unknownEndpoint)
 
 // error handler middleware (has to be the last loaded)
-const errorHandler = (error, request, response) => {
-  console.error(error.message)
-  console.log('error name: ', error)
+const errorHandler = (error, request, response, next) => {
+  // array to save validation errors
+  const validationErrorsDetails = []
 
+  // catching error by their name
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
-  } else if (error.name === 'ValidationError') {
-    return response.status(400).send({ error: 'format validation error' })
+  } else if (error.name === 'ValidationError')  {
+      for(const field in error.errors) {
+        const errorPath = error.errors[field].path;
+        validationErrorsDetails.push(`${errorPath}`)
+      }
+      return response.status(400).send({ error: 'format validation error', validationErrorsDetails  })
+  } else if(error.name === 'DuplicatePhoneNumberError') {
+    validationErrorsDetails.push(`duplicate phone number`)
+    return response.status(400).send({ error: 'duplicate phone number', validationErrorsDetails  })
+  } else if(error.name === 'PersonNotFound') {
+    validationErrorsDetails.push(`person not found`)
+    return response.status(400).send({ error: 'person not found', validationErrorsDetails  })
+  } else if(error.name === 'PersonAlreadyDeleted') {
+    validationErrorsDetails.push(`person already deleted`)
+    return response.status(400).send({ error: 'person not found', validationErrorsDetails  })
   }
+  
+  response.status(500).json({ error: 'Something went wrong' });
 }
 app.use(errorHandler)
 

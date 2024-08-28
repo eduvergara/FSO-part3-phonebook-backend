@@ -11,21 +11,25 @@ mongoose.connect(url)
 const personSchema = new mongoose.Schema({
   name: {
     type: String,
-    minLength: 1,
+    validate: {
+      validator: function (v) {
+        return /^[A-Za-z\s]*$/.test(v)
+      },
+      message: (props) => `${props.value} is not a valid name!`,
+    },
     required: true,
   },
   number: {
     type: String,
     validate: {
       validator: function (v) {
-        return /\d{3}-\d{5,}/.test(v)
+        return /\d{3}-\d{7}$/.test(v)
       },
       message: (props) => `${props.value} is not a valid phone number!`,
     },
     required: true,
   },
 })
-
 
 // configure how Mongoose documents from personSchema are serialized to JSON
 personSchema.set('toJSON', {

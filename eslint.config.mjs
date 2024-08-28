@@ -46,5 +46,6 @@ export default [
   },
   { 
     ignores: ["dist/**", "build/**"],
+    'react/prop-types': 0
   },
 ]

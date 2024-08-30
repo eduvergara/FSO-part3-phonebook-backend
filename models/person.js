@@ -13,7 +13,10 @@ const personSchema = new mongoose.Schema({
     type: String,
     validate: {
       validator: function (v) {
-        return /^[A-Za-z\s]*$/.test(v)
+        const normalizedName = v.replace(/\s+/g, ' ')
+        return /^[A-Za-z\s]{1,70}$/.test(normalizedName)
+
+
       },
       message: (props) => `${props.value} is not a valid name!`,
     },

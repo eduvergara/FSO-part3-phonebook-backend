@@ -15,6 +15,7 @@ This project is the backend for a phonebook application built using Node.js, Exp
 - [Overview](#overview)
 - [Features](#features)
 - [Installation](#installation)
+- [Folder Structure](#folder-structure)
 - [Usage](#usage)
 - [API Endpoints](#api-endpoints)
 - [Environment Variables](#environment-variables)
@@ -48,6 +49,21 @@ cd FSO-part3-phonebook-backend
 npm install
 
 ```
+
+## Folder Structure
+
+```
+── project-root/
+   ├── dist/
+   │   └── ...                 # Frontend build files
+   ├── models/
+   │   └── person.js           # Mongoose schema for the Person model
+   ├── index.js                # Main entry point of the backend application
+   ├── .env                    # Environment variables (MongoDB URI)
+   ├── package.json            # Project metadata and dependencies
+   └── ...                     # Other folders/files specific to the backend project
+```
+
 ## Usage
 
 1. Create a .env file in the root directory with the following content:
